@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Puzzle de Chemin Interactif - Multi-Niveaux</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        margin: 0;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 2.5em;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .level-info {
+        text-align: center;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        border-radius: 10px;
+        font-size: 1.2em;
+        font-weight: bold;
+      }
+
+      .timer-container {
+        text-align: center;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #ff6b6b;
+        color: white;
+        border-radius: 10px;
+        font-size: 1.5em;
+        font-weight: bold;
+        animation: timerPulse 1s ease-in-out infinite alternate;
+      }
+
+      @keyframes timerPulse {
+        from {
+          transform: scale(1);
+        }
+        to {
+          transform: scale(1.02);
+        }
+      }
+
+      .timer-warning {
+        background: #ff4757 !important;
+        animation: warningPulse 0.5s ease-in-out infinite alternate !important;
+      }
+
+      @keyframes warningPulse {
+        from {
+          transform: scale(1);
+          background: #ff4757;
+        }
+        to {
+          transform: scale(1.05);
+          background: #ff3742;
+        }
+      }
+
+      .level-navigation {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+
+      .level-btn {
+        padding: 10px 15px;
+        border: none;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        min-width: 60px;
+      }
+
+      .level-btn.current {
+        background: #4caf50;
+        color: white;
+        transform: scale(1.1);
+      }
+
+      .level-btn.completed {
+        background: #2196f3;
+        color: white;
+      }
+
+      .level-btn.locked {
+        background: #ccc;
+        color: #666;
+        cursor: not-allowed;
+      }
+
+      .level-btn:not(.locked):hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .instructions {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        border-left: 5px solid #667eea;
+      }
+
+      .grid-container {
+        display: flex;
+        justify-content: center;
+        margin: 30px 0;
+      }
+
+      .grid {
+        display: grid;
+        gap: 2px;
+        background: #ddd;
+        padding: 10px;
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      }
+
+      .cell {
+        width: 50px;
+        height: 50px;
+        border: 2px solid #333;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        user-select: none;
+      }
+
+      .cell:hover:not(.blocked) {
+        transform: scale(1.1);
+        z-index: 10;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      }
+
+      .empty {
+        background: white;
+      }
+
+      .blocked {
+        background: #333;
+        color: white;
+        cursor: not-allowed;
+      }
+
+      .blocked::before {
+        content: "✗";
+        font-size: 18px;
+        color: red;
+      }
+
+      .selected {
+        background: #2196f3;
+        color: white;
+        transform: scale(1.05);
+      }
+
+      .start {
+        background: #4caf50;
+        color: white;
+        border: 3px solid #45a049;
+      }
+
+      .end {
+        background: #f44336;
+        color: white;
+        border: 3px solid #d32f2f;
+      }
+
+      .invalid {
+        background: #ffeb3b;
+        color: #333;
+        animation: shake 0.5s ease-in-out;
+      }
+
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        25% {
+          transform: translateX(-5px);
+        }
+        75% {
+          transform: translateX(5px);
+        }
+      }
+
+      .controls {
+        text-align: center;
+        margin: 30px 0;
+      }
+
+      button {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        margin: 0 10px;
+        border-radius: 25px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      button:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .status {
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        margin: 20px 0;
+        padding: 15px;
+        border-radius: 10px;
+      }
+
+      .success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      .error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 10px;
+        background: #e0e0e0;
+        border-radius: 5px;
+        margin: 10px 0;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(45deg, #4caf50, #45a049);
+        transition: width 0.5s ease;
+        border-radius: 5px;
+      }
+
+      /* Popup styles */
+      .popup-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        animation: fadeIn 0.3s ease;
+      }
+
+      .popup {
+        background: white;
+        padding: 40px;
+        border-radius: 20px;
+        text-align: center;
+        max-width: 500px;
+        margin: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        animation: popIn 0.5s ease;
+      }
+
+      .popup h2 {
+        font-size: 2.5em;
+        margin-bottom: 20px;
+        color: #333;
+      }
+
+      .popup p {
+        font-size: 1.3em;
+        margin-bottom: 30px;
+        color: #666;
+      }
+
+      .popup button {
+        font-size: 1.2em;
+        padding: 15px 40px;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes popIn {
+        from {
+          transform: scale(0.5);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      .game-stats {
+        display: flex;
+        justify-content: space-around;
+        margin: 20px 0;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 10px;
+      }
+
+      .stat {
+        text-align: center;
+      }
+
+      .stat-number {
+        font-size: 2em;
+        font-weight: bold;
+        color: #667eea;
+      }
+
+      .stat-label {
+        font-size: 0.9em;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🧩 Puzzle de Chemin Interactif</h1>
+
+      <div class="level-info">
+        <div>
+          Niveau <span id="current-level-display">1</span> /
+          <span id="total-levels">10</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+      </div>
+
+      <div class="timer-container" id="timer">
+        Temps restant: <span id="time-display">8</span>s
+      </div>
+
+      <div class="level-navigation" id="level-navigation">
+        <!-- Les boutons de niveau seront générés ici -->
+      </div>
+
+      <div class="instructions">
+        <h3>📋 Instructions:</h3>
+        <ul>
+          <li>
+            🎯 <strong>Objectif:</strong> Cliquez pour tracer un chemin continu
+            passant par toutes les cases vides
+          </li>
+          <li>⏰ <strong>Temps:</strong> 1 seconde par case vide à remplir</li>
+          <li>
+            🚫 <strong>Règles:</strong> Pas de diagonales, chaque case une seule
+            fois
+          </li>
+          <li>
+            ❌ <strong>Cases bloquées:</strong> Ne peuvent pas être traversées
+          </li>
+          <li>
+            🖱️ <strong>Contrôles:</strong> Cliquez sur une case vide pour
+            commencer, puis sur les cases adjacentes
+          </li>
+        </ul>
+      </div>
+
+      <div class="game-stats">
+        <div class="stat">
+          <div class="stat-number" id="path-length">0</div>
+          <div class="stat-label">Cases visitées</div>
+        </div>
+        <div class="stat">
+          <div class="stat-number" id="remaining-cells">0</div>
+          <div class="stat-label">Cases restantes</div>
+        </div>
+        <div class="stat">
+          <div class="stat-number" id="current-level-name">Initiation</div>
+          <div class="stat-label">Niveau actuel</div>
+        </div>
+      </div>
+
+      <div class="grid-container">
+        <div class="grid" id="grid"></div>
+      </div>
+
+      <div class="controls">
+        <button onclick="startLevel()" id="start-btn">🚀 Commencer</button>
+        <button onclick="resetGrid()" id="reset-btn" disabled>
+          🔄 Recommencer
+        </button>
+        <button onclick="undoLastMove()" id="undo-btn" disabled>
+          ↶ Annuler
+        </button>
+        <button onclick="nextLevel()" id="next-level-btn" style="display: none">
+          🎯 Niveau Suivant
+        </button>
+      </div>
+
+      <div id="status" class="status info">
+        Cliquez sur "Commencer" pour débuter le niveau 1 !
+      </div>
+    </div>
+
+    <script>
+      // Configuration des niveaux
+      const LEVELS = [
+        // Niveau 1 - Très facile (3x3)
+        {
+          rows: 3,
+          cols: 3,
+          grid: [
+            [0, 0, 0],
+            [0, 1, 0],
+            [0, 0, 0],
+          ],
+          name: "Initiation",
+        },
+        // Niveau 2 - Facile (3x4)
+        {
+          rows: 3,
+          cols: 4,
+          grid: [
+            [0, 0, 0, 0],
+            [0, 1, 1, 0],
+            [0, 0, 0, 0],
+          ],
+          name: "Débutant",
+        },
+        // Niveau 3 - Facile+ (4x3)
+        {
+          rows: 4,
+          cols: 3,
+          grid: [
+            [0, 0, 0],
+            [0, 1, 0],
+            [0, 1, 0],
+            [0, 0, 0],
+          ],
+          name: "Apprenti",
+        },
+        // Niveau 4 - Moyen (4x4)
+        {
+          rows: 4,
+          cols: 4,
+          grid: [
+            [0, 0, 0, 0],
+            [0, 1, 1, 0],
+            [0, 1, 1, 0],
+            [0, 0, 0, 0],
+          ],
+          name: "Intermédiaire",
+        },
+        // Niveau 5 - Moyen+ (4x5)
+        {
+          rows: 4,
+          cols: 5,
+          grid: [
+            [0, 0, 0, 0, 0],
+            [0, 1, 0, 1, 0],
+            [0, 1, 0, 1, 0],
+            [0, 0, 0, 0, 0],
+          ],
+          name: "Confirmé",
+        },
+        // Niveau 6 - Difficile (5x4)
+        {
+          rows: 5,
+          cols: 4,
+          grid: [
+            [0, 0, 0, 0],
+            [0, 1, 1, 0],
+            [0, 0, 0, 0],
+            [0, 1, 1, 0],
+            [0, 0, 0, 0],
+          ],
+          name: "Avancé",
+        },
+        // Niveau 7 - Difficile+ (5x5)
+        {
+          rows: 5,
+          cols: 5,
+          grid: [
+            [0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0],
+          ],
+          name: "Expert",
+        },
+        // Niveau 8 - Très difficile (6x4)
+        {
+          rows: 6,
+          cols: 4,
+          grid: [
+            [0, 0, 0, 0],
+            [0, 1, 1, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 1, 1, 0],
+            [0, 0, 0, 0],
+          ],
+          name: "Maître",
+        },
+        // Niveau 9 - Extrême (5x6)
+        {
+          rows: 5,
+          cols: 6,
+          grid: [
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0, 0],
+          ],
+          name: "Légende",
+        },
+        // Niveau 10 - Collection de niveaux impossibles (6x4)
+        {
+          rows: 6,
+          cols: 4,
+          variations: [
+            // Variation 1 - Original impossible
+            [
+              [0, 0, 0, 0],
+              [0, 0, 0, 0],
+              [1, 0, 0, 0],
+              [0, 0, 0, 0],
+              [1, 1, 1, 0],
+              [0, 0, 0, 0],
+            ],
+            // Variation 2 - Isolated corners
+            [
+              [0, 1, 1, 0],
+              [1, 0, 0, 1],
+              [1, 0, 0, 1],
+              [1, 0, 0, 1],
+              [1, 0, 0, 1],
+              [0, 1, 1, 0],
+            ],
+            // Variation 3 - Checkerboard impossible
+            [
+              [0, 1, 0, 1],
+              [1, 0, 1, 0],
+              [0, 1, 0, 1],
+              [1, 0, 1, 0],
+              [0, 1, 0, 1],
+              [1, 0, 1, 0],
+            ],
+            // Variation 4 - Central isolation
+            [
+              [0, 0, 0, 0],
+              [0, 1, 1, 0],
+              [0, 1, 0, 1],
+              [0, 1, 0, 1],
+              [0, 1, 1, 0],
+              [0, 0, 0, 0],
+            ],
+            // Variation 5 - Multiple dead ends
+            [
+              [0, 1, 0, 1],
+              [0, 1, 0, 1],
+              [0, 0, 0, 0],
+              [1, 0, 1, 0],
+              [1, 0, 1, 0],
+              [0, 0, 0, 0],
+            ],
+            // Variation 6 - Maze trap
+            [
+              [0, 0, 1, 0],
+              [1, 0, 1, 0],
+              [0, 0, 0, 0],
+              [0, 1, 0, 1],
+              [0, 1, 0, 1],
+              [0, 0, 0, 0],
+            ],
+          ],
+          name: "Chef bandit",
+        },
+      ];
+
+      let currentLevel = 1;
+      let completedLevels = new Set();
+      let grid = [];
+      let userPath = [];
+      let ROWS, COLS;
+      let gameStarted = false;
+      let timer = null;
+      let timeLeft = 0;
+      let totalEmptyCells = 0;
+      let level10Variation = 0; // Track which impossible variation to show
+
+      function initGame() {
+        createLevelNavigation();
+        loadLevel(currentLevel);
+      }
+
+      function createLevelNavigation() {
+        const nav = document.getElementById("level-navigation");
+        nav.innerHTML = "";
+
+        for (let i = 1; i <= LEVELS.length; i++) {
+          const btn = document.createElement("button");
+          btn.textContent = i;
+          btn.className = "level-btn";
+          btn.onclick = () => switchToLevel(i);
+
+          if (i === currentLevel) {
+            btn.classList.add("current");
+          } else if (completedLevels.has(i)) {
+            btn.classList.add("completed");
+          } else if (i > currentLevel && !completedLevels.has(i - 1) && i > 1) {
+            btn.classList.add("locked");
+            btn.onclick = null;
+          }
+
+          nav.appendChild(btn);
+        }
+
+        document.getElementById("total-levels").textContent = LEVELS.length;
+        updateProgress();
+      }
+
+      function updateProgress() {
+        const progress = (completedLevels.size / LEVELS.length) * 100;
+        document.getElementById("progress-fill").style.width = progress + "%";
+      }
+
+      function switchToLevel(level) {
+        if (
+          level > 1 &&
+          !completedLevels.has(level - 1) &&
+          level !== currentLevel
+        ) {
+          updateStatus(
+            "🔒 Vous devez d'abord terminer le niveau précédent !",
+            "error"
+          );
+          return;
+        }
+
+        stopTimer();
+        currentLevel = level;
+        loadLevel(level);
+        createLevelNavigation();
+      }
+
+      function loadLevel(level) {
+        const levelData = LEVELS[level - 1];
+        ROWS = levelData.rows;
+        COLS = levelData.cols;
+
+        // Handle special Level 10 with multiple variations
+        if (level === 10) {
+          grid = levelData.variations[level10Variation].map((row) => [...row]);
+        } else {
+          grid = levelData.grid.map((row) => [...row]);
+        }
+
+        // Compter les cases vides
+        totalEmptyCells = 0;
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (grid[r][c] === 0) totalEmptyCells++;
+          }
+        }
+
+        userPath = [];
+        gameStarted = false;
+        timeLeft = totalEmptyCells; // 1 seconde par case (pas 60!)
+
+        document.getElementById("current-level-display").textContent = level;
+        document.getElementById("current-level-name").textContent =
+          level === 10 ? `${levelData.name}` : levelData.name;
+        document.getElementById("next-level-btn").style.display = "none";
+        document.getElementById("start-btn").disabled = false;
+        document.getElementById("reset-btn").disabled = true;
+        document.getElementById("undo-btn").disabled = true;
+
+        initGrid();
+        updateStats();
+        updateTimerDisplay();
+        updateStatus(
+          `Niveau ${level}: ${levelData.name}. Cliquez sur "Commencer" !`,
+          "info"
+        );
+      }
+
+      function initGrid() {
+        const gridEl = document.getElementById("grid");
+        gridEl.innerHTML = "";
+
+        // Ajuster la taille des cellules selon la grille
+        const cellSize = Math.min(60, Math.floor(400 / Math.max(ROWS, COLS)));
+
+        gridEl.style.gridTemplateColumns = `repeat(${COLS}, ${cellSize}px)`;
+        gridEl.style.gridTemplateRows = `repeat(${ROWS}, ${cellSize}px)`;
+
+        for (let row = 0; row < ROWS; row++) {
+          for (let col = 0; col < COLS; col++) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.id = `cell-${row}-${col}`;
+            cell.style.width = cellSize + "px";
+            cell.style.height = cellSize + "px";
+            cell.style.fontSize = Math.floor(cellSize * 0.25) + "px";
+            cell.onclick = () => selectCell(row, col);
+
+            if (grid[row][col] === 1) {
+              cell.classList.add("blocked");
+            } else {
+              cell.classList.add("empty");
+            }
+
+            gridEl.appendChild(cell);
+          }
+        }
+      }
+
+      function startLevel() {
+        gameStarted = true;
+        startTimer();
+        document.getElementById("start-btn").disabled = true;
+        document.getElementById("reset-btn").disabled = false;
+        updateStatus(
+          "🎮 Cliquez sur une case vide pour commencer votre chemin !",
+          "info"
+        );
+      }
+
+      function startTimer() {
+        const timerEl = document.getElementById("timer");
+        timer = setInterval(() => {
+          timeLeft--;
+          updateTimerDisplay();
+
+          if (timeLeft <= 30) {
+            timerEl.classList.add("timer-warning");
+          }
+
+          if (timeLeft <= 0) {
+            stopTimer();
+            gameTimeout();
+          }
+        }, 1000);
+      }
+
+      function stopTimer() {
+        if (timer) {
+          clearInterval(timer);
+          timer = null;
+        }
+        document.getElementById("timer").classList.remove("timer-warning");
+      }
+
+      function updateTimerDisplay() {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        document.getElementById(
+          "time-display"
+        ).textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+      }
+
+      function gameTimeout() {
+        // Reset to Level 1 on any failure
+        resetToLevelOne();
+
+        if (currentLevel === 10) {
+          // Cycle to next impossible variation for Level 10
+          level10Variation = (level10Variation + 1) % 6;
+          showPopup(
+            "TU PENSES QUE C'EST UN JEU",
+            `😈 Est ce que toi tu aimes amusement !  😈`,
+            "Retour au Niveau 1 labas 🤣 "
+          );
+        } else {
+          showPopup(
+            "BÈLÈLOU 🤪",
+            "TU N'AS PAS TROUVÉ 🤣<br>Retour au niveau 1 !",
+            "Recommencer au Niveau 1 🤪"
+          );
+        }
+      }
+
+      function resetToLevelOne() {
+        // Reset progress and go back to level 1
+        currentLevel = 1;
+        completedLevels.clear();
+        stopTimer();
+        gameStarted = false;
+        loadLevel(1);
+        createLevelNavigation();
+      }
+
+      function showPopup(title, message, buttonText) {
+        const overlay = document.createElement("div");
+        overlay.className = "popup-overlay";
+        overlay.innerHTML = `
+                <div class="popup">
+                    <h2>${title}</h2>
+                    <p>${message}</p>
+                    <button onclick="closePopup()">${buttonText}</button>
+                </div>
+            `;
+        document.body.appendChild(overlay);
+
+        overlay.onclick = (e) => {
+          if (e.target === overlay) closePopup();
+        };
+      }
+
+      function closePopup() {
+        const overlay = document.querySelector(".popup-overlay");
+        if (overlay) {
+          overlay.remove();
+          // Don't call resetGrid() here since we already reset to level 1
+        }
+      }
+
+      function selectCell(row, col) {
+        if (!gameStarted || grid[row][col] === 1) return;
+
+        const cellId = `${row}-${col}`;
+
+        // Si c'est le premier clic
+        if (userPath.length === 0) {
+          userPath.push([row, col]);
+          updateCellAppearance(row, col, "start");
+          updateStats();
+          updateStatus(
+            "✅ Début du chemin ! Continuez avec une case adjacente.",
+            "info"
+          );
+          document.getElementById("undo-btn").disabled = false;
+          return;
+        }
+
+        // Vérifier si la case est déjà dans le chemin
+        if (userPath.some(([r, c]) => r === row && c === col)) {
+          // Si c'est la case précédente, permettre l'annulation
+          const lastIndex = userPath.length - 1;
+          if (
+            userPath[lastIndex][0] === row &&
+            userPath[lastIndex][1] === col
+          ) {
+            undoLastMove();
+            return;
+          } else {
+            showInvalidMove(row, col);
+            return;
+          }
+        }
+
+        // Vérifier l'adjacence
+        const [lastRow, lastCol] = userPath[userPath.length - 1];
+        const isAdjacent =
+          Math.abs(row - lastRow) + Math.abs(col - lastCol) === 1;
+
+        if (!isAdjacent) {
+          showInvalidMove(row, col);
+          updateStatus(
+            "❌ Vous devez sélectionner une case adjacente !",
+            "error"
+          );
+          return;
+        }
+
+        // Ajouter la case au chemin
+        userPath.push([row, col]);
+        updateCellAppearance(
+          row,
+          col,
+          userPath.length === totalEmptyCells ? "end" : "selected"
+        );
+        updateStats();
+
+        // Vérifier si le niveau est terminé
+        if (userPath.length === totalEmptyCells) {
+          levelCompleted();
+        } else {
+          updateStatus(
+            `🎯 Continuez ! ${
+              totalEmptyCells - userPath.length
+            } cases restantes.`,
+            "info"
+          );
+        }
+      }
+
+      function updateCellAppearance(row, col, type) {
+        const cell = document.getElementById(`cell-${row}-${col}`);
+        cell.className = `cell ${type}`;
+
+        if (type === "start") {
+          cell.textContent = "🚀";
+        } else if (type === "end") {
+          cell.textContent = "🏁";
+        } else if (type === "selected") {
+          cell.textContent = userPath.length;
+        }
+      }
+
+      function showInvalidMove(row, col) {
+        const cell = document.getElementById(`cell-${row}-${col}`);
+        cell.classList.add("invalid");
+        setTimeout(() => {
+          cell.classList.remove("invalid");
+        }, 500);
+      }
+
+      function undoLastMove() {
+        if (userPath.length === 0) return;
+
+        const [row, col] = userPath.pop();
+        const cell = document.getElementById(`cell-${row}-${col}`);
+        cell.className = "cell empty";
+        cell.textContent = "";
+
+        // Mettre à jour l'apparence de la nouvelle dernière case
+        if (userPath.length > 0) {
+          const [lastRow, lastCol] = userPath[userPath.length - 1];
+          updateCellAppearance(
+            lastRow,
+            lastCol,
+            userPath.length === 1 ? "start" : "selected"
+          );
+        }
+
+        if (userPath.length === 0) {
+          document.getElementById("undo-btn").disabled = true;
+          updateStatus(
+            "🎮 Cliquez sur une case vide pour commencer votre chemin !",
+            "info"
+          );
+        }
+
+        updateStats();
+      }
+
+      function updateStats() {
+        document.getElementById("path-length").textContent = userPath.length;
+        document.getElementById("remaining-cells").textContent =
+          totalEmptyCells - userPath.length;
+      }
+
+      function levelCompleted() {
+        stopTimer();
+        completedLevels.add(currentLevel);
+        gameStarted = false;
+
+        if (currentLevel < LEVELS.length) {
+          updateStatus("🎉 Niveau terminé ! Bravo !", "success");
+          document.getElementById("next-level-btn").style.display =
+            "inline-block";
+        } else {
+          updateStatus(
+            "🏆 Tous les niveaux terminés ! Félicitations !",
+            "success"
+          );
+        }
+
+        createLevelNavigation();
+        updateProgress();
+      }
+
+      function nextLevel() {
+        if (currentLevel < LEVELS.length) {
+          currentLevel++;
+          loadLevel(currentLevel);
+          createLevelNavigation();
+        }
+      }
+
+      function resetGrid() {
+        stopTimer();
+        userPath = [];
+        gameStarted = false;
+
+        // Remettre à zéro l'affichage
+        for (let row = 0; row < ROWS; row++) {
+          for (let col = 0; col < COLS; col++) {
+            const cell = document.getElementById(`cell-${row}-${col}`);
+            if (grid[row][col] === 0) {
+              cell.className = "cell empty";
+              cell.textContent = "";
+            }
+          }
+        }
+
+        timeLeft = totalEmptyCells;
+        updateTimerDisplay();
+        updateStats();
+
+        document.getElementById("start-btn").disabled = false;
+        document.getElementById("reset-btn").disabled = true;
+        document.getElementById("undo-btn").disabled = true;
+        document.getElementById("next-level-btn").style.display = "none";
+
+        updateStatus(
+          '🔄 Niveau remis à zéro. Cliquez sur "Commencer" !',
+          "info"
+        );
+      }
+
+      function updateStatus(message, type) {
+        const statusEl = document.getElementById("status");
+        statusEl.textContent = message;
+        statusEl.className = `status ${type}`;
+      }
+
+      // Initialisation du jeu
+      initGame();
+    </script>
+  </body>
+</html>
